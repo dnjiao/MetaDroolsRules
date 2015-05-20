@@ -1,12 +1,10 @@
-//created on: May 19, 2015
 package drools.rules
 
-rule "A stand alone rule"
+rule "DICOM is PHI"
 
     when
-        //conditions
+        $pn : DicomImage(boolName == true)
     then
-        //actions
-
+        System.out.println($vo.getFileName() + "is PHI")
 end
 
