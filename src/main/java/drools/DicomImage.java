@@ -7,13 +7,26 @@ import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStreamReader;
 
+import org.dcm4che2.data.DicomObject;
+import org.dcm4che2.io.DicomInputStream;
+
 public class DicomImage {
 	String fileName;
 	String patientName;
 	String modality;
 	boolean boolName = false;
+	DicomObject dicom;
 	
-	public DicomImage (File file) {
+	DicomImage (File file) {
+		DicomInputStream din;
+		try {
+			din = new DicomInputStream(file);
+			this.dicom = din.readDicomObject();
+			dicom.contains
+		} catch (IOException e1) {
+			e1.printStackTrace();
+		}
+		
 		this.fileName = file.getName();
 		FileInputStream fstream;
 		try {
