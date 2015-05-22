@@ -1,0 +1,12 @@
+package drools.rules
+
+import drools.DicomImage
+
+rule "DICOM is PHI"
+
+    when
+        $di : DicomImage(boolName == true)
+    then
+        System.out.println($di.getFileName() + " is PHI");
+end
+

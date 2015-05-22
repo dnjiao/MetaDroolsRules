@@ -14,7 +14,7 @@ public class ApplyDicomRules {
 	private static RuleBase rbase = RuleBaseFactory.newRuleBase();
     private static PackageBuilder pbuilder = new PackageBuilder();
     private static StatefulSession sessionObject;
-    private static String DRL_FILE = "/rules/dicomphi.drl";
+    private static String DRL_FILE = "dicomphi.drl";
  
 	public static void main(String[] args) {
 		initializeDrools();
@@ -26,16 +26,32 @@ public class ApplyDicomRules {
 			File folder = new File(args[0]);
 			if (folder.isDirectory()) {
 				File[] files = folder.listFiles();
+				long startTime = System.currentTimeMillis();
+				long initTime = 0;
+				long fireTime = 0;
+				int fileCount = 0;
 				for (File f : files) {
-					if (f.getName().endsWith("dcm")) {
+					if (f.getName().endsWith(".dcm")) {
+						fileCount ++;
 						DicomImage dcm = new DicomImage(f);
+						long initStart = System.currentTimeMillis();
 						initializeObject(dcm);
+						long initEnd = System.currentTimeMillis();
+						initTime += initEnd - initStart;
+						long fireStart = System.currentTimeMillis();
 						runRules();
+						long fireEnd = System.currentTimeMillis();
+						fireTime += fireEnd - fireStart;
+						finalizeSession();
 					}
 				}
+				long endTime = System.currentTimeMillis();
+				long totalTime = endTime - startTime;
+				System.out.println("Rule applied to total " + fileCount + " files in " + totalTime + "ms");
+				System.out.println("Rule initialization took " + initTime + "ms");
+				System.out.println("Rule firing took " + fireTime + "ms");
 			}
 		}
-        
 	}
         
     private static void initializeDrools() {
@@ -70,10 +86,16 @@ public class ApplyDicomRules {
     private static void runRules() {
         sessionObject.fireAllRules();
     }
+    
+    // Method to free memory
+    private static void finalizeSession() {
+    	sessionObject.dispose();
+    }
  
     // Method to insert message object in session
     private static void initializeObject(DicomImage di) {
         sessionObject = rbase.newStatefulSession();
         sessionObject.insert(di);
+        
     }
 }

@@ -3,18 +3,27 @@
   <groupId>org.mda.ris</groupId>
   <artifactId>MetaRuleEngine</artifactId>
   <version>0.0.1-SNAPSHOT</version>
-  <build>
-  <plugins>
-   <plugin>
-    <groupId>org.apache.maven.plugins</groupId>
-    <artifactId>maven-compiler-plugin</artifactId>
-    <configuration>
-     <source>1.6</source>
-     <target>1.6</target>
-    </configuration>
-   </plugin>
-  </plugins>
- </build>
+   <build>
+  	<plugins>
+  		<plugin>
+	        <groupId>org.apache.maven.plugins</groupId>
+	        <artifactId>maven-shade-plugin</artifactId>
+	        <version>2.3</version>
+	        <executions>
+	          <execution>
+	            <phase>package</phase>
+	            <goals>
+	              <goal>shade</goal>
+	            </goals>
+	          </execution>
+	        </executions>
+	        <configuration>
+	          <finalName>uber-${artifactId}-${version}</finalName>
+	        </configuration>
+      	</plugin>
+  	</plugins>
+  	
+  </build>
  <properties>
   <drools.version>6.0.0.Final</drools.version>
  </properties>
@@ -51,5 +60,15 @@
     <artifactId>dcm4che</artifactId>
     <version>2.0.25</version>
   </dependency>
+  <dependency>
+        <groupId>org.slf4j</groupId>
+        <artifactId>slf4j-api</artifactId>
+        <version>1.7.5</version>
+    </dependency>
+    <dependency>
+        <groupId>org.slf4j</groupId>
+        <artifactId>slf4j-simple</artifactId>
+        <version>1.6.4</version>
+    </dependency>
  </dependencies>
 </project>
