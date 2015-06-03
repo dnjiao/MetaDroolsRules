@@ -14,16 +14,16 @@ public class ApplyDicomRules {
 	private static RuleBase rbase = RuleBaseFactory.newRuleBase();
     private static PackageBuilder pbuilder = new PackageBuilder();
     private static StatefulSession sessionObject;
-    private static String DRL_FILE = "dicomphi.drl";
+    private static String DRL_FILE = "rule10.drl";
  
 	public static void main(String[] args) {
-		initializeDrools();
-		if (args.length != 1) {
+		if (args.length != 3) {
 			System.out.println("ERROR: must provide one argument.");
 			System.exit(1);
 		}
 		else {
 			File folder = new File(args[0]);
+			initializeDrools(Integer.parseInt(args[2]));
 			if (folder.isDirectory()) {
 				File[] files = folder.listFiles();
 				long startTime = System.currentTimeMillis();
@@ -44,6 +44,9 @@ public class ApplyDicomRules {
 						fireTime += fireEnd - fireStart;
 						finalizeSession();
 					}
+					if (fileCount == Integer.parseInt(args[1])) {
+						break;
+					}
 				}
 				long endTime = System.currentTimeMillis();
 				long totalTime = endTime - startTime;
@@ -54,10 +57,11 @@ public class ApplyDicomRules {
 		}
 	}
         
-    private static void initializeDrools() {
+    private static void initializeDrools(int num) {
         // Read the DRL File and add to package builder
         try {
-            Reader reader = new InputStreamReader(ApplyDicomRules.class.getResourceAsStream(DRL_FILE));
+        	String filename = "rule" + Integer.toString(num) + ".drl";
+            Reader reader = new InputStreamReader(ApplyDicomRules.class.getResourceAsStream(filename));
             pbuilder.addPackageFromDrl(reader);
         } catch (Exception ex) {
             System.out.println(ex.getMessage());
