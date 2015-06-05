@@ -1,105 +1,83 @@
 package drools;
 
 import java.io.File;
-import java.io.InputStreamReader;
-import java.io.Reader;
-
-import org.drools.compiler.compiler.PackageBuilder;
-import org.drools.compiler.compiler.PackageBuilderErrors;
-import org.drools.core.StatefulSession;
-import org.drools.core.RuleBase;
-import org.drools.core.RuleBaseFactory;
+import org.drools.KnowledgeBase;
+import org.drools.KnowledgeBaseFactory;
+import org.drools.builder.KnowledgeBuilder;
+import org.drools.builder.KnowledgeBuilderError;
+import org.drools.builder.KnowledgeBuilderErrors;
+import org.drools.builder.KnowledgeBuilderFactory;
+import org.drools.builder.ResourceType;
+import org.drools.io.ResourceFactory;
+import org.drools.runtime.StatefulKnowledgeSession;
 
 public class ApplyDicomRules {
-	private static RuleBase rbase = RuleBaseFactory.newRuleBase();
-    private static PackageBuilder pbuilder = new PackageBuilder();
-    private static StatefulSession sessionObject;
-    private static String DRL_FILE = "rule10.drl";
- 
+	
 	public static void main(String[] args) {
-		if (args.length != 3) {
-			System.out.println("ERROR: must provide one argument.");
+		if (args.length != 2) {
+			System.out.println("ERROR: must provide two arguments.");
 			System.exit(1);
 		}
 		else {
-			File folder = new File(args[0]);
-			initializeDrools(Integer.parseInt(args[2]));
-			if (folder.isDirectory()) {
-				File[] files = folder.listFiles();
-				long startTime = System.currentTimeMillis();
-				long initTime = 0;
-				long fireTime = 0;
-				int fileCount = 0;
-				for (File f : files) {
-					if (f.getName().endsWith(".dcm")) {
-						fileCount ++;
-						DicomImage dcm = new DicomImage(f);
-						long initStart = System.currentTimeMillis();
-						initializeObject(dcm);
-						long initEnd = System.currentTimeMillis();
-						initTime += initEnd - initStart;
-						long fireStart = System.currentTimeMillis();
-						runRules();
-						long fireEnd = System.currentTimeMillis();
-						fireTime += fireEnd - fireStart;
-						finalizeSession();
-					}
-					if (fileCount == Integer.parseInt(args[1])) {
-						break;
-					}
+			try {
+				KnowledgeBuilder kbuilder = KnowledgeBuilderFactory.newKnowledgeBuilder();
+				
+				File folder = new File(args[0]);
+				long initStart = System.currentTimeMillis();
+				
+				// add rule files to knowledgebuilder
+				String filename;
+				for (int i = 1; i < 10; i++) {
+		    		filename = "rule" + Integer.toString(i) + "0000.drl";
+		    		System.out.println("Adding rule file " + Integer.toString(i) + "\n");
+		    		kbuilder.add(ResourceFactory.newClassPathResource(filename), ResourceType.DRL);
 				}
-				long endTime = System.currentTimeMillis();
-				long totalTime = endTime - startTime;
-				System.out.println("Rule applied to total " + fileCount + " files in " + totalTime + "ms");
-				System.out.println("Rule initialization took " + initTime + "ms");
-				System.out.println("Rule firing took " + fireTime + "ms");
+				KnowledgeBuilderErrors errors = kbuilder.getErrors();
+		        if (errors.size() > 0) {
+		        	for (KnowledgeBuilderError error: errors) {
+		        		System.err.println(error);
+		            }
+		            throw new IllegalArgumentException("Could not parse knowledge.");
+		        }
+		        KnowledgeBase kbase = KnowledgeBaseFactory.newKnowledgeBase();
+		        kbase.addKnowledgePackages(kbuilder.getKnowledgePackages());
+		        long initEnd = System.currentTimeMillis();
+				long initTime = initEnd - initStart;
+				
+				// iterate all files in directory and apply all rules to each of them
+				StatefulKnowledgeSession ksession = kbase.newStatefulKnowledgeSession();
+				if (folder.isDirectory()) {
+					File[] files = folder.listFiles();
+					long startTime = System.currentTimeMillis();
+					long fireTime = 0;
+					int fileCount = 0;
+					for (File f : files) {
+						if (f.getName().endsWith(".dcm")) {
+							fileCount ++;
+							DicomImage dcm = new DicomImage(f);
+							ksession.insert(dcm);
+							
+							long fireStart = System.currentTimeMillis();
+							ksession.fireAllRules();
+							long fireEnd = System.currentTimeMillis();
+							fireTime += fireEnd - fireStart;
+							ksession.dispose();
+						}
+						if (fileCount == Integer.parseInt(args[1])) {
+							break;
+						}
+					}
+					long endTime = System.currentTimeMillis();
+					long totalTime = endTime - startTime;
+					System.out.println("Rule applied to total " + fileCount + " files in " + totalTime + "ms");
+					System.out.println("Rule initialization took " + initTime + "ms");
+					System.out.println("Rule firing took " + fireTime + "ms");
+				} 
+			}
+			catch (Exception e) {
+				e.printStackTrace();
 			}
 		}
+
 	}
-        
-    private static void initializeDrools(int num) {
-        // Read the DRL File and add to package builder
-        try {
-        	String filename = "rule" + Integer.toString(num) + ".drl";
-            Reader reader = new InputStreamReader(ApplyDicomRules.class.getResourceAsStream(filename));
-            pbuilder.addPackageFromDrl(reader);
-        } catch (Exception ex) {
-            System.out.println(ex.getMessage());
-        }
- 
-        // Check for any errors
-        PackageBuilderErrors errors = pbuilder.getErrors();
- 
-        if (errors.getErrors().length > 0) {
-            System.out.println("Some errors exists in packageBuilder");
-            for (int i = 0; i < errors.getErrors().length; i++) {
-                System.out.println(errors.getErrors()[i]);
-            }
-            throw new IllegalArgumentException("Could not parse knowledge.");
-        }
- 
-        // Add package to rule base
-        try {
-            rbase.addPackage(pbuilder.getPackage());
-        } catch (Exception e) {
-            System.out.println("Error: " + e);
-        }
-    }
- 
-    // Method to fire all rules
-    private static void runRules() {
-        sessionObject.fireAllRules();
-    }
-    
-    // Method to free memory
-    private static void finalizeSession() {
-    	sessionObject.dispose();
-    }
- 
-    // Method to insert message object in session
-    private static void initializeObject(DicomImage di) {
-        sessionObject = rbase.newStatefulSession();
-        sessionObject.insert(di);
-        
-    }
 }
